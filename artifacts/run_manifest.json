@@ -1,0 +1,106 @@
+{
+  "generated_at": "2026-11-11T12:16:16Z",
+  "config": {
+    "app": {
+      "name": "Groww MF Facts-Only FAQ",
+      "disclaimer": "Facts-only. No investment advice.",
+      "max_answer_sentences": 3
+    },
+    "ingestion": {
+      "urls": [
+        "https://groww.in/mutual-funds/amc/hdfc-mutual-funds",
+        "https://groww.in/mutual-funds/hdfc-large-cap-fund-direct-growth",
+        "https://groww.in/mutual-funds/hdfc-equity-fund-direct-growth",
+        "https://groww.in/mutual-funds/hdfc-elss-tax-saver-fund-direct-plan-growth",
+        "https://groww.in/mutual-funds/hdfc-mid-cap-fund-direct-growth"
+      ],
+      "user_agent": "Mozilla/5.0 (compatible; GrowwFaqBot/1.0)",
+      "timeout_s": 20.0,
+      "retries": 2,
+      "delay_s": 1.0,
+      "respect_robots": true
+    },
+    "chunking": {
+      "strategy": "layout_hybrid",
+      "max_tokens": 400,
+      "overlap_tokens": 60,
+      "min_tokens": 10,
+      "hard_max_tokens": 800,
+      "fact_chunks": true,
+      "table_rows": true
+    },
+    "embedding": {
+      "provider": "sentence-transformers",
+      "model_name": "sentence-transformers/all-MiniLM-L6-v2",
+      "device": "cpu",
+      "batch_size": 32,
+      "normalize": true
+    },
+    "vectorstore": {
+      "provider": "chromadb",
+      "persist_dir": "artifacts/04_chroma",
+      "collection": "groww_mf_facts",
+      "distance": "cosine"
+    },
+    "retrieval": {
+      "top_k": 6,
+      "score_threshold": 0.25,
+      "use_mmr": true,
+      "mmr_lambda": 0.5,
+      "scheme_filter": true
+    },
+    "llm": {
+      "provider": "groq",
+      "model": "qwen/qwen3-32b",
+      "temperature": 0.0,
+      "max_tokens": 220,
+      "api_key_env": "GROQ_API_KEY",
+      "timeout_s": 60.0
+    },
+    "paths": {
+      "artifacts": "E:\\Ragchatbot\\artifacts"
+    }
+  },
+  "secrets": {
+    "GROQ_API_KEY": "set",
+    "OPENAI_API_KEY": "missing",
+    "ANTHROPIC_API_KEY": "missing",
+    "GEMINI_API_KEY": "missing",
+    "MISTRAL_API_KEY": "missing"
+  },
+  "embedding": {
+    "model_name": "sentence-transformers/all-MiniLM-L6-v2",
+    "dim": 384,
+    "normalize": true,
+    "checksum": "31c99f493e4d6c894577530610a4c21762e1df9977df877b1ff8c56905bf9331"
+  },
+  "collection": {
+    "name": "groww_mf_facts",
+    "distance": "cosine",
+    "count": 468,
+    "chunk_count": 468,
+    "all_chunk_ids_present": true,
+    "missing_ids": [],
+    "missing_count": 0,
+    "extra_count": 0
+  },
+  "self_similarity_check": {
+    "probe_chunk_id": "af986538328b94c3",
+    "similarity": 1.0,
+    "passed": true
+  },
+  "sample_query": {
+    "question": "expense ratio",
+    "filter": {
+      "scheme_slug": "hdfc-large-cap-fund-direct-growth"
+    },
+    "ok": true,
+    "top_hit": {
+      "chunk_id": "bf2dc4aea1a05d53",
+      "scheme_slug": "hdfc-large-cap-fund-direct-growth",
+      "fact_key": "expense_ratio",
+      "text": "HDFC Mutual Fund | HDFC Large Cap Fund | Direct Growth | expense_ratio: 1.00%"
+    }
+  },
+  "ok": true
+}
