@@ -88,12 +88,19 @@ class ChromaStore:
             where=where,
             include=["documents", "metadatas", "distances", "embeddings"],
         )
+
+        def first(key: str) -> list[Any]:
+            # Chroma returns one inner list per query; guard both the
+            # ``[[]]`` and the rare ``[]`` shape for zero-hit responses.
+            outer = res.get(key) or []
+            return list(outer[0]) if outer else []
+
         return {
-            "ids": list(res["ids"][0]),
-            "documents": list(res["documents"][0]),
-            "metadatas": list(res["metadatas"][0]),
-            "distances": list(res["distances"][0]),
-            "embeddings": list(res["embeddings"][0]),
+            "ids": first("ids"),
+            "documents": first("documents"),
+            "metadatas": first("metadatas"),
+            "distances": first("distances"),
+            "embeddings": first("embeddings"),
         }
 
     def reset(self) -> None:

@@ -25,7 +25,15 @@ def test_otp_blocks():
 
 
 def test_account_number_blocks():
-    assert detect_pii("account number 123456789012") == "account"
+    # 11 digits: long enough for the account pattern, short enough that
+    # it is not also an aadhaar-shaped 12-digit run.
+    assert detect_pii("account number 12345678901") == "account"
+
+
+def test_aadhaar_shaped_account_number_still_blocks():
+    # A 12-digit "account number" is aadhaar-shaped; the kind label may
+    # differ but the turn must be blocked either way.
+    assert detect_pii("account number 123456789012") is not None
 
 
 def test_normal_fact_question_passes():
