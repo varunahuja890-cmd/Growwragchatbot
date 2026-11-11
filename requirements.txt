@@ -1,0 +1,18 @@
+# Phases 2-6 (scrape, load, chunk, embed, index) — Python 3.11, CPU-only
+httpx>=0.27,<1.0
+trafilatura>=1.12
+beautifulsoup4>=4.12
+lxml>=5.0
+PyYAML>=6.0
+pydantic>=2.7,<3.0
+pydantic-settings>=2.3,<3.0
+numpy>=1.26
+sentence-transformers>=3.0
+chromadb>=0.5
+
+# Phases 7-8 (query pipeline, UI, tests)
+streamlit>=1.35
+pytest>=8.0
+
+# Optional: browser fallback for JS-only pages
+# playwright>=1.40

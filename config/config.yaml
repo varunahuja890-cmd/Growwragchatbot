@@ -1,0 +1,58 @@
+app:
+  name: "Groww MF Facts-Only FAQ"
+  disclaimer: "Facts-only. No investment advice."
+  max_answer_sentences: 3
+
+ingestion:
+  # The five Tier A registry URLs — the only pages that are ever fetched.
+  urls:
+    - https://groww.in/mutual-funds/amc/hdfc-mutual-funds
+    - https://groww.in/mutual-funds/hdfc-large-cap-fund-direct-growth
+    - https://groww.in/mutual-funds/hdfc-equity-fund-direct-growth
+    - https://groww.in/mutual-funds/hdfc-elss-tax-saver-fund-direct-plan-growth
+    - https://groww.in/mutual-funds/hdfc-mid-cap-fund-direct-growth
+  user_agent: "Mozilla/5.0 (compatible; GrowwFaqBot/1.0)"
+  timeout_s: 20
+  retries: 2
+  delay_s: 1.0
+  respect_robots: true
+
+chunking:
+  strategy: "layout_hybrid"        # layout_hybrid | recursive | fixed
+  max_tokens: 400
+  overlap_tokens: 60
+  min_tokens: 10
+  hard_max_tokens: 800             # never emit a chunk above this
+  fact_chunks: true
+  table_rows: true
+
+embedding:
+  provider: "sentence-transformers"
+  model_name: "sentence-transformers/all-MiniLM-L6-v2"
+  device: "cpu"
+  batch_size: 32
+  normalize: true
+
+vectorstore:
+  provider: "chromadb"
+  persist_dir: "artifacts/04_chroma"
+  collection: "groww_mf_facts"
+  distance: "cosine"
+
+retrieval:
+  top_k: 6
+  score_threshold: 0.25
+  use_mmr: true
+  mmr_lambda: 0.5
+  scheme_filter: true
+
+llm:
+  provider: "groq"                 # groq | gemini | openai | anthropic | mistral
+  model: "qwen/qwen3-32b"          # override with GROQ_MODEL in .env
+  temperature: 0.0
+  max_tokens: 220
+  timeout_s: 60
+  api_key_env: "GROQ_API_KEY"
+
+paths:
+  artifacts: "artifacts"

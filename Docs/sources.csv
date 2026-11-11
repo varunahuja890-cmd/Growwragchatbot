@@ -1,0 +1,16 @@
+tier,slug,url,label,purpose,scraped
+A,hdfc-mutual-funds,https://groww.in/mutual-funds/amc/hdfc-mutual-funds,HDFC Mutual Fund (AMC overview),corpus: AMC overview,yes
+A,hdfc-large-cap-fund-direct-growth,https://groww.in/mutual-funds/hdfc-large-cap-fund-direct-growth,HDFC Large Cap Fund - Direct Growth,corpus: scheme,yes
+A,hdfc-equity-fund-direct-growth,https://groww.in/mutual-funds/hdfc-equity-fund-direct-growth,HDFC Flexi Cap Fund - Direct Plan Growth,corpus: scheme,yes
+A,hdfc-elss-tax-saver-fund-direct-plan-growth,https://groww.in/mutual-funds/hdfc-elss-tax-saver-fund-direct-plan-growth,HDFC ELSS Tax Saver Fund - Direct Plan Growth,corpus: scheme (lock-in required),yes
+A,hdfc-mid-cap-fund-direct-growth,https://groww.in/mutual-funds/hdfc-mid-cap-fund-direct-growth,HDFC Mid Cap Fund - Direct Growth,corpus: scheme,yes
+B,hdfc-mf-home,https://www.hdfcfund.com/,HDFC Mutual Fund - official website,factsheet / SID redirects,no
+B,groww-help,https://groww.in/help,Groww Help & Support,statement-download help and support,no
+B,groww-help-mf-statement,https://groww.in/help/my-account/searchable/how-to-download-mutual-fund-statement,How to download a mutual fund statement - Groww help,statement-download answers (miss path),no
+B,groww-help-contact,https://groww.in/help/my-account/searchable/how-to-call-groww-customer-care,How to call Groww customer care,support contact,no
+B,groww-mf-landing,https://groww.in/mutual-funds,Mutual funds on Groww,educational redirect,no
+B,groww-mf-knowledge,https://groww.in/blog/category/mutual-funds,Groww - mutual funds knowledge centre,educational redirect,no
+B,amfi-home,https://www.amfiindia.com/,AMFI - Association of Mutual Funds in India,investor education,no
+B,amfi-investor-corner,https://www.amfiindia.com/investor-corner,AMFI investor corner,investor education,no
+B,sebi-home,https://www.sebi.gov.in/,SEBI - Securities and Exchange Board of India,regulator,no
+B,sebi-scores,https://scores.sebi.gov.in/,SEBI SCORES - complaint registration,grievance escalation,no
