@@ -106,6 +106,9 @@ def render_answer(answer: Answer, cfg: AppConfig) -> None:
                     st.text(hit.get("text", "")[:220])
             else:
                 st.caption("No trace stored for this turn.")
+        else:
+            # PII turns return before a query_id exists — nothing is stored.
+            st.caption("No trace stored for this turn.")
 
 
 def main() -> None:

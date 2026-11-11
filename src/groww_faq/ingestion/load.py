@@ -9,6 +9,9 @@ network) and loads each page into a typed ``PageDocument`` written to
   app-download noise is stripped;
 * trafilatura produces the cleaned main text, used as the prose source of
   last resort for facts;
+* two Groww-specific fallbacks scan the page we already fetched (same
+  URL, no extra request): the "Investment Objective" label-block layout,
+  and the fund-analysis JSON island that carries the ELSS lock-in;
 * fact labels are mapped onto the canonical fact keys;
 * identity fields (amc, scheme, plan, page_type, slug) come from the
   registry, never from the page;
@@ -403,6 +406,14 @@ def _scan_dom_facts(
 
 
 def _objective_from_sections(sections: list[Section]) -> FactPair | None:
+    """Two layouts:
+
+    1. a section whose heading is "Investment Objective" — first long
+       block is the sentence;
+    2. Groww's actual layout: the words "Investment Objective" as a bare
+       text-block label inside the "About <scheme>" section, followed by
+       the objective sentence.
+    """
     for sec in sections:
         if re.search(r"(?i)(investment\s+objective|^objective\s*$)", sec.heading):
             blocks = [b for b in sec.text_blocks if len(b) >= 30]
@@ -414,6 +425,24 @@ def _objective_from_sections(sections: list[Section]) -> FactPair | None:
                     via="dom-section",
                     section=sec.heading,
                 )
+    label_re = re.compile(r"(?i)^investment\s+objective\b[\s:–-]*")
+    for sec in sections:
+        for i, block in enumerate(sec.text_blocks):
+            m = label_re.match(block.strip())
+            if not m:
+                continue
+            rest = block.strip()[m.end():].strip(" :–-")
+            if len(rest) >= 30:
+                return FactPair(
+                    key="objective", label="Investment Objective",
+                    value=rest[:600], via="dom-section", section=sec.heading,
+                )
+            for nxt in sec.text_blocks[i + 1:]:
+                if len(nxt) >= 30:
+                    return FactPair(
+                        key="objective", label="Investment Objective",
+                        value=nxt[:600], via="dom-section", section=sec.heading,
+                    )
     return None
 
 
@@ -425,6 +454,33 @@ def _prose_value(patterns: list[re.Pattern[str]], text: str) -> str | None:
             if value:
                 return value
     return None
+
+
+# Groww embeds a fund-analysis JSON island in the page we already fetched,
+# e.g. "analysis_subject":"lock_in","analysis_desc":"Lock-in period: 3Y".
+# It lives inside a <script> blob, so the DOM and prose scans never see it;
+# scanning the raw HTML of the same fetch (no extra request, same URL) is
+# the documented fallback. Only the ELSS page carries this island.
+_RAW_LOCK_IN_RE = re.compile(
+    r'"analysis_subject":\s*"lock_in"\s*,\s*"analysis_desc":\s*"([^"]+)"'
+)
+_LOCK_IN_VALUE_RE = re.compile(r"(?i)(\d+\s*-?\s*(?:y|yr|year|years)\b)")
+
+
+def _lock_in_from_raw_html(html: str) -> FactPair | None:
+    m = _RAW_LOCK_IN_RE.search(html)
+    if m is None:
+        return None
+    desc = m.group(1).strip()
+    vm = _LOCK_IN_VALUE_RE.search(desc)
+    value = _clean_ws(vm.group(1)) if vm else desc
+    return FactPair(
+        key="lock_in",
+        label="Lock-in period",
+        value=value,
+        via="raw-html-json",
+        section="Overview",
+    )
 
 
 def _extract_facts(
@@ -571,6 +627,12 @@ def _load_one(cfg: AppConfig, entry: RegistryEntry) -> tuple[PageDocument | None
         }
 
     facts = _extract_facts(sections, leaves, trafilatura_text)
+
+    # Groww keeps the lock-in in a JSON island inside the fetched page;
+    # the DOM/prose scans cannot see it, so scan the raw HTML directly.
+    lock_in = _lock_in_from_raw_html(html)
+    if lock_in is not None:
+        facts.setdefault("lock_in", lock_in)
 
     doc = PageDocument(
         source_url=entry.url,
