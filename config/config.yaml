@@ -48,7 +48,7 @@ retrieval:
 
 llm:
   provider: "groq"                 # groq | gemini | openai | anthropic | mistral
-  model: "qwen/qwen3-32b"          # override with GROQ_MODEL in .env
+  model: "openai/gpt-oss-120b"     # override with GROQ_MODEL in .env
   temperature: 0.0
   max_tokens: 220
   timeout_s: 60

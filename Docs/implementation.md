@@ -193,7 +193,7 @@ question
 - Expander “Show retrieval” that reads the trace.
 - Footer, exact text: `Facts-only. No investment advice.`
 
-Startup of the app checks the manifest, a non-empty collection, and that the configured model id exists at the provider. A bad Groq id (including `qwen/qwen3.8-27b`) stops the app with that id in the error. The real id is `GROQ_MODEL` in `.env`.
+Startup of the app checks the manifest, a non-empty collection, and that the configured model id exists at the provider. A bad Groq id (for example `qwen/qwen3-32b`, which Groq removed from its catalog) stops the app with that id in the error. The real id is `GROQ_MODEL` in `.env`.
 
 `scripts/inspect.py stage <01_raw|01_clean|02_chunks|03_embeddings|04_chroma|05_retrieval> --id <id>` prints that stage for a demo.
 

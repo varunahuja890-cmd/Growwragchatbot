@@ -178,7 +178,12 @@ class QueryPipeline:
         """LLM call at temperature 0; one regenerate; then the template."""
         system, user = build_prompt(question, hits)
         context = "\n".join(h.text for h in hits)
-        llm_info: dict[str, Any] = {"model": self.cfg.llm.model, "validated": False}
+        # Record the *resolved* model (GROQ_MODEL in .env can override the
+        # config.yaml default) — the client in ensure_llm uses the same one.
+        llm_info: dict[str, Any] = {
+            "model": self.cfg.resolved_llm(self.secrets).model,
+            "validated": False,
+        }
 
         try:
             llm = self.ensure_llm()
