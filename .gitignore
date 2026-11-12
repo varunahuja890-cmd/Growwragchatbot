@@ -15,3 +15,6 @@ venv/
 
 # models / caches downloaded locally
 .cache/
+
+.vercel
+.env*
