@@ -365,7 +365,8 @@ def _refusal_link(
     if resolved:
         url, label = _page_link([resolved])
         return url, label, ""
-    return _page_link([])
+    url, label = _page_link([])
+    return url, label, ""
 
 
 def _miss_link(question: str, resolved: str | None) -> tuple[str, str]:
