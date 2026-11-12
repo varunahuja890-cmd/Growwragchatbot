@@ -321,6 +321,34 @@ npx.cmd vercel git connect                # auto-deploy on push to main
 
 Importing from the dashboard works the same way: import the GitHub repo, Framework Preset **Other**, Output Directory **public** (both are already in `vercel.json`), then add the two environment variables.
 
+> **Pitfall — never let the project pin `framework: python`.** Vercel's generic
+> Python preset (`packages/frameworks/src/frameworks.ts`, entry `slug: 'python'`)
+> activates on a root `requirements.txt`, `pyproject.toml`, or `Pipfile`. It then
+> builds the whole repo as a single serverless app and fails with
+> `No python entrypoint found in default locations, but found potential
+> entrypoints: api/ask.py (variable: handler)`.
+>
+> Two things must both be true:
+>
+> 1. `.vercelignore` excludes `/requirements.txt` (it is the local Streamlit
+>    stack: torch, sentence-transformers, chromadb, streamlit).
+> 2. The project setting `framework` is empty. `vercel link`/`vercel deploy` on a
+>    fresh project can pin it to `python`, and a pinned setting overrides file
+>    upload rules. Clear it once:
+>
+> ```powershell
+> $tok = (Get-Content "$env:APPDATA\com.vercel.cli\Data\auth.json" -Raw |
+>   ConvertFrom-Json).token
+> Invoke-RestMethod -Method Patch `
+>   -Uri 'https://api.vercel.com/v9/projects/<project>?teamId=<teamId>' `
+>   -Headers @{ Authorization = "Bearer $tok" } `
+>   -ContentType 'application/json' -Body '{"framework":null}'
+> ```
+>
+> (Dashboard equivalent: Project → Settings → Framework Preset → **Other** → Save.)
+> With the setting empty, Vercel builds `public/` as static output and each
+> `api/**/*.py` exporting `handler` as its own function — the intended layout.
+
 The dashboard path (vercel.com → Add New → Project → import the repo) deploys the same `vercel.json`. After the first deploy, verify:
 
 ```powershell
