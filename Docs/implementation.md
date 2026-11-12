@@ -267,3 +267,66 @@ The validator rejects more than 3 sentences, any URL in the model text, the word
 - Disclaimer on screen is exactly `Facts-only. No investment advice.`
 - `inspect.py` can show all six artifact stages.
 - A scan of `artifacts/` finds none of the PII strings used in the tests.
+
+---
+
+## 9. Vercel deployment (serverless edition)
+
+The Streamlit app cannot run on Vercel (torch + chromadb bundle size, read-only filesystem, no persistent Chroma directory), so the repo also ships a **Vercel-native edition** that runs the identical facts-only pipeline as a static page plus one Python function. Design details are in `Docs/architecture.md` §8.1.
+
+### 9.1 Build the serverless index (local, gated)
+
+```powershell
+# needs torch + sentence-transformers + onnxruntime + onnxscript locally
+$env:HF_HOME='E:\hf_cache'; $env:PYTHONUTF8='1'
+python scripts/export_onnx.py
+```
+
+The script loads the 468 chunks from `artifacts/02_chunks` in registry order (the Chroma build order), exports all-MiniLM-L6-v2 to ONNX (opset 17), quantizes to int8, embeds every chunk with the same `MiniLMOnnx` class the function will use, and **verifies before writing**: cosine of every ONNX vector against the torch reference in `artifacts/03_embeddings` must average ≥ 0.985 with worst ≥ 0.90. Measured: **mean 0.9942, min 0.9903**. Output (23.3 MB total, well under the 500 MB bundle limit):
+
+| File | Size | Contents |
+|---|---|---|
+| `api/data/minilm_int8.onnx` | 22.4 MB | int8 transformer (queries only) |
+| `api/data/tokenizer.json` | 455 KB | HF fast tokenizer |
+| `api/data/chunks.json` | 262 KB | chunk metadata, registry order |
+| `api/data/vectors.npy` | 702 KB | **torch** document vectors — bit-identical to the Chroma rows |
+| `api/data/index_manifest.json` | 1 KB | counts, dims, gate stats (FR-9) |
+
+### 9.2 The function and its dependencies
+
+- `api/ask.py` — `POST /api/ask` mirrors `query/pipeline.py` stage for stage (PII → intent → scheme → retrieve → grounded LLM → validate/retry → template → one citation). Guardrail modules are **imported from `src/groww_faq`**, not copied. The trace rides in the JSON response because the filesystem is read-only. `python api/ask.py` (local) runs six demo turns against `.env`.
+- `api/requirements.txt` — `onnxruntime`, `numpy`, `tokenizers`, `httpx`, `pydantic` only. Vercel's Python builder discovers the manifest nearest the entrypoint, so the root `requirements.txt` (torch, streamlit, chromadb) is never installed into the function.
+- `vercel.json` — `outputDirectory: public`, `maxDuration: 60` for `api/ask.py`, and `excludeFiles` keeping `artifacts/`, `tests/`, `Docs/`, `scripts/`, `ui/`, `config/`, `.env` out of the bundle.
+
+### 9.3 Equivalence verification (before every deploy)
+
+- `pytest tests -q` — 37/37 (unchanged; the app pipeline is not touched).
+- Local harness `python api/ask.py` — all six demo turns behave like the app (validated LLM answers, refusal, PII block, miss).
+- Hits-level comparison against Chroma retrieval (12 questions, deterministic, no LLM): identical top-3 chunk ids on all 12; identical citation on all 12; tail hits can swap at near-tied scores (±0.01) from the int8 query embedding.
+- Answer-level comparison (12 questions, real pipeline vs the function): guardrail paths 100 % identical; factual bodies verbatim-identical whenever both Groq calls returned; the only diffs were Groq free-tier 429s on one side, which the template fallback handles by design.
+
+### 9.4 Deploy
+
+```powershell
+# one-time setup (local): caches and login state off the C: drive
+New-Item E:\vercelhome -ItemType Directory -Force
+$env:USERPROFILE='E:\vercelhome'; $env:npm_config_cache='E:\npmcache'
+npx.cmd vercel login                      # browser OAuth
+npx.cmd vercel link --yes                 # link E:\Ragchatbot to the project
+Write-Output $env:GROQ_API_KEY | npx.cmd vercel env add GROQ_API_KEY production
+npx.cmd vercel env add GROQ_MODEL production   # value: openai/gpt-oss-120b
+npx.cmd vercel --prod
+npx.cmd vercel git connect                # auto-deploy on push to main
+```
+
+Importing from the dashboard works the same way: import the GitHub repo, Framework Preset **Other**, Output Directory **public** (both are already in `vercel.json`), then add the two environment variables.
+
+The dashboard path (vercel.com → Add New → Project → import the repo) deploys the same `vercel.json`. After the first deploy, verify:
+
+```powershell
+Invoke-RestMethod https://<project>.vercel.app/api/ask -Method Post `
+  -ContentType 'application/json' -Body '{"question":"What is the exit load of HDFC Mid Cap?"}'
+```
+
+Secrets live only in Vercel project env vars; the key is never in the repo (`.env` is gitignored, `api/requirements.txt` carries no key, `git grep gsk_` returns nothing).
+

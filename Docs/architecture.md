@@ -148,7 +148,14 @@ src/groww_faq/
   registry.py               # Tier A corpus URLs + Tier B citation-only URLs
 ui/app.py                   # Streamlit
 scripts/ingest.py           # P1→P4 orchestrator: rebuild index from raw HTML or from scratch
+scripts/export_onnx.py      # build api/data: ONNX MiniLM + serverless chunk index (gated)
 scripts/inspect.py          # FR-9 CLI
+api/                        # Vercel serverless edition (see §8.1)
+  ask.py                    #   POST /api/ask — mirrors query/pipeline.py
+  requirements.txt          #   function deps only (onnxruntime, numpy, tokenizers, httpx, pydantic)
+  data/                     #   minilm_int8.onnx, tokenizer.json, chunks.json, vectors.npy, index_manifest.json
+public/index.html           # static Groww-styled frontend (POSTs to /api/ask)
+vercel.json                 # outputDirectory public, function config, excludeFiles
 artifacts/                  # gitignored generated state
 Docs/sources.md
 Docs/sources.csv
@@ -410,6 +417,27 @@ One Streamlit screen (`ui/app.py`):
 
 The UI holds no retrieval or prompt logic. Session state keeps only the current turn’s rendered answer so a refresh does not invent history.
 
+### 8.1 Vercel edition (serverless)
+
+The Streamlit app needs torch, sentence-transformers and a persistent Chroma directory, none of which fit a serverless function (bundle size, read-only filesystem, no background sockets). The **Vercel edition** runs the same facts-only pipeline as a static page plus one Python function:
+
+| Piece | File | Notes |
+|---|---|---|
+| Frontend | `public/index.html` | Groww-styled static page; `POST /api/ask`. Same answer contract (body, one citation, last-updated, retrieval details). |
+| Function | `api/ask.py` | File-based Vercel function (`class handler(BaseHTTPRequestHandler)`). One route: `POST /api/ask` (`GET` returns a health payload without any question data). |
+| Guardrails | `src/groww_faq` imports | PII patterns, intent regexes, scheme aliases, system prompt, validator and the citation registry are **imported from the same package as the app** — one source of truth, not a fork. `config.yaml` is not read; its retrieval/LLM knobs are mirrored as module constants next to the values they mirror. |
+| Retrieval | `api/data` index | `MiniLMOnnx` (ONNX int8 all-MiniLM-L6-v2, ~22 MB) embeds **queries only**; `vectors.npy` stores the **torch document vectors — bit-identical to the rows in the Chroma collection** — so document-side ranking matches the app exactly and the single approximation left is the query embedding. `chunks.json` + `vectors.npy` replace Chroma; cosine search, top-6, threshold 0.25, MMR λ 0.5 mirror `query/retrieve.py` verbatim. |
+| LLM | Groq over `httpx` | Same request shape as `llm/factory.py`: temperature 0, 220 max tokens, one retry on timeout/5xx/429, then the cited template fallback. Model id from the `GROQ_MODEL` env var (`openai/gpt-oss-120b`). |
+
+Deliberate differences from the app:
+
+- **No trace files.** The Vercel filesystem is read-only; the retrieval trace (query id, intent, path, filter, hits) is returned inside the JSON response instead — every stage stays inspectable (FR-9) in the browser's network tab and the UI's "Show retrieval details" panel.
+- **Secrets.** `GROQ_API_KEY` / `GROQ_MODEL` are Vercel project environment variables, never repo files. A missing key is an LLM failure: the cited template fallback answers, the process never crashes.
+- **PII turns** return the minimal `{body, path}` payload — no question echo, no trace keys.
+- **Dependency isolation.** `api/requirements.txt` (onnxruntime, numpy, tokenizers, httpx, pydantic) is the manifest nearest the entrypoint, so Vercel installs only those; the root `requirements.txt` with torch/streamlit/chromadb is never part of the function bundle. `vercel.json` excludes `artifacts/`, `tests/`, `Docs/`, `scripts/`, `ui/`, `config/` and `.env` from the bundle.
+
+The index is rebuilt by `scripts/export_onnx.py`, which exports MiniLM to ONNX, quantizes to int8, embeds all 468 chunks with the same `MiniLMOnnx` class the function uses, and **gates the write** on cosine agreement with the torch reference vectors (mean ≥ 0.985, worst ≥ 0.90; measured 0.9942 / 0.9903). Equivalence against the app pipeline was verified before deployment: guardrail paths (refusal / redirect / miss / clarify / PII) 100 % identical; factual answers verbatim-identical when both LLM calls returned; retrieved top-3 chunk ids identical on all 12 probe questions (tail hits can swap at near-tied scores, ±0.01, which never changes the citation or the answer).
+
 ---
 
 ## 9. Configuration and secrets
@@ -492,3 +520,5 @@ A small `scripts/eval.py` calls the same `query.pipeline` and scores accuracy, c
 | Vector score | Config threshold is cosine **similarity**. The retriever converts Chroma cosine distance. |
 | Model id | Config value, validated at startup against the provider. |
 | Statement-download answers | Until PRD open question 2 is closed, the pipeline may answer only from Tier A text. If that text is absent, it returns the miss path with the Tier B help URL as the single link, and does not scrape that URL. |
+| Serverless retrieval | The Vercel function embeds queries with int8 ONNX MiniLM but stores the **torch document vectors**, so only the query side is approximate (gated ≥ 0.985 mean cosine); Chroma itself stays the app's index. |
+| Serverless guardrails | `api/ask.py` imports the guardrail modules from `src/groww_faq` instead of copying them; only the retrieval mechanics (numpy cosine + MMR) are mirrored, with the mirrored constants sitting next to the config values they reproduce. |

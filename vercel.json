@@ -1,0 +1,10 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "outputDirectory": "public",
+  "functions": {
+    "api/ask.py": {
+      "maxDuration": 60,
+      "excludeFiles": "{artifacts/**,tests/**,Docs/**,scripts/**,ui/**,config/**,public/**,.venv/**,venv/**,node_modules/**,__pycache__/**,.pytest_cache/**,.git/**,.env,.env.example,requirements.txt,README.md}"
+    }
+  }
+}

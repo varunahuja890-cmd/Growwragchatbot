@@ -93,6 +93,28 @@ provider — a bad model id (e.g. `qwen/qwen3.8-27b` on Groq) stops the app
 with that id in the error. A missing/rejected API key shows a warning
 banner and answers degrade to the cited template.
 
+## Deploy on Vercel (serverless edition)
+
+The same facts-only pipeline also runs as a static page + one Python
+function — no torch, no Chroma, no persistent disk:
+
+- `public/index.html` — Groww-styled UI, POSTs to `/api/ask`.
+- `api/ask.py` — mirrors `query/pipeline.py` stage for stage; guardrail
+  modules are imported from `src/groww_faq`, and the retrieval trace rides
+  in the JSON response (the serverless filesystem is read-only).
+- `api/data/` — int8 ONNX MiniLM (query-side, gated ≥ 0.985 mean cosine
+  vs the torch encoder) + the torch document vectors and chunk metadata,
+  so ranking matches the app's Chroma index.
+- `vercel.json` + `api/requirements.txt` — static output from `public/`,
+  light function deps only (the root `requirements.txt` is never
+  installed into the function).
+
+Deploy: import the repo at vercel.com (Framework Preset **Other**), or
+`npx vercel --prod`. Set `GROQ_API_KEY` and `GROQ_MODEL`
+(`openai/gpt-oss-120b`) as project environment variables — never commit
+the key. Rebuild the index locally with
+`python scripts/export_onnx.py` (see `Docs/implementation.md` §9).
+
 ## Tests (phase 8)
 
 ```bash
@@ -151,7 +173,11 @@ src/groww_faq/
 ui/app.py                   phase 8 — Streamlit one-screen UI
 tests/                      phase 8 — guardrail tests (no network)
 scripts/ingest.py           pipeline orchestrator (5 stages)
+scripts/export_onnx.py      Vercel index builder (ONNX int8, gated)
 scripts/inspect.py          stage inspector
+api/                        Vercel edition — ask.py + data/ index
+public/index.html           Vercel edition — static frontend
+vercel.json                 Vercel edition — routing + bundle excludes
 artifacts/                  generated state (gitignored)
 Docs/                       product docs + sources.md/sources.csv
 ```

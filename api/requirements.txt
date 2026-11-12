@@ -1,0 +1,10 @@
+# Dependencies for the Vercel serverless function (api/ask.py) ONLY.
+# This file takes precedence over the root requirements.txt for files under
+# api/ (Vercel discovers the manifest nearest the entrypoint and stops there),
+# which is why the heavy local stack (torch, sentence-transformers, chromadb,
+# streamlit) is never installed into the function bundle.
+onnxruntime==1.31.1
+numpy==2.4.6
+tokenizers==0.23.3
+httpx==0.28.1
+pydantic==2.14.3

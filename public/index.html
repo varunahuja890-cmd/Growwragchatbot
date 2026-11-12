@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>HDFC Fund Facts Assistant</title>
+<meta name="description" content="Facts-only Q&A about four HDFC mutual fund schemes. Every answer cites one official Groww page.">
+<style>
+  :root {
+    --green: #00D09C;        /* Groww primary */
+    --green-hover: #00B386;  /* pressed / hover */
+    --ink: #44475B;          /* headline + body */
+    --muted: #7E838D;        /* secondary text */
+    --bg: #FFFFFF;
+    --bg-soft: #F5F6F8;      /* section background */
+    --line: #E2E4EB;        /* borders */
+    --danger: #EC5B5B;      /* refusal accent */
+    --green-tint: rgba(0, 208, 156, 0.12);
+    --radius: 8px;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+    background: var(--bg-soft);
+    color: var(--ink);
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+  a { color: var(--green-hover); text-decoration: none; font-weight: 600; }
+  a:hover { text-decoration: underline; }
+  a:focus-visible, button:focus-visible, input:focus-visible, summary:focus-visible {
+    outline: 2px solid var(--ink); outline-offset: 2px; border-radius: 4px;
+  }
+
+  /* ---------- header ---------- */
+  header {
+    position: sticky; top: 0; z-index: 10;
+    background: var(--bg);
+    border-bottom: 1px solid var(--line);
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 16px; padding: 12px 24px;
+  }
+  .brand { display: flex; align-items: center; gap: 10px; min-width: 0; }
+  .logo {
+    width: 28px; height: 28px; border-radius: 6px; background: var(--green);
+    display: flex; align-items: flex-end; justify-content: center; gap: 2px;
+    padding: 5px 4px; flex: none;
+  }
+  .logo span { width: 4px; background: #fff; border-radius: 1px; display: block; }
+  .logo span:nth-child(1) { height: 5px; }
+  .logo span:nth-child(2) { height: 9px; }
+  .logo span:nth-child(3) { height: 13px; }
+  .brand h1 { font-size: 16px; font-weight: 600; margin: 0; white-space: nowrap; }
+  .pill {
+    border: 1px solid var(--line); border-radius: 999px;
+    color: var(--muted); font-size: 12px; padding: 4px 12px;
+    white-space: nowrap; flex: none;
+  }
+  @media (max-width: 560px) { .pill { display: none; } }
+
+  /* ---------- layout ---------- */
+  main { max-width: 720px; margin: 0 auto; padding: 40px 20px 24px; }
+  .hero { text-align: center; margin-bottom: 28px; }
+  .hero h2 { font-size: 28px; font-weight: 700; margin: 0 0 8px; color: var(--ink); }
+  .hero p { font-size: 15px; color: var(--muted); margin: 0; }
+
+  .card {
+    background: var(--bg); border: 1px solid var(--line);
+    border-radius: var(--radius); box-shadow: 0 1px 3px rgba(68, 71, 91, 0.06);
+  }
+
+  /* ---------- question card ---------- */
+  .ask { padding: 18px; }
+  .ask-row { display: flex; gap: 10px; }
+  .ask-row input {
+    flex: 1; min-width: 0; border: 1px solid var(--line); border-radius: var(--radius);
+    padding: 0 14px; height: 46px; font-size: 15px; font-family: inherit;
+    color: var(--ink); background: var(--bg); transition: border-color 0.15s;
+  }
+  .ask-row input::placeholder { color: var(--muted); }
+  .ask-row input:focus { border-color: var(--green); outline: none; }
+  .ask-row button {
+    height: 46px; min-width: 84px; padding: 0 20px; border: none; cursor: pointer;
+    border-radius: var(--radius); background: var(--green); color: #0B3B33;
+    font-size: 15px; font-weight: 700; font-family: inherit;
+    transition: background 0.15s;
+  }
+  .ask-row button:hover { background: var(--green-hover); }
+  .ask-row button:disabled { opacity: 0.55; cursor: default; }
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+  .chips button {
+    background: var(--bg-soft); border: 1px solid var(--line); color: var(--ink);
+    border-radius: 999px; padding: 8px 14px; font-size: 13px; font-family: inherit;
+    cursor: pointer; min-height: 36px; transition: border-color 0.15s;
+  }
+  .chips button:hover { border-color: var(--green); }
+
+  /* ---------- answer card ---------- */
+  #answer-wrap { margin-top: 22px; display: none; }
+  .answer { position: relative; padding: 18px 18px 14px 22px; }
+  .answer::before {
+    content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 4px;
+    border-radius: var(--radius) 0 0 var(--radius); background: var(--green);
+  }
+  .answer.refuse::before { background: var(--danger); }
+  .answer h3 { font-size: 13px; font-weight: 600; letter-spacing: 0.04em;
+    text-transform: uppercase; color: var(--muted); margin: 0 0 8px; }
+  .answer .body { font-size: 16px; margin: 0 0 12px; max-width: 62ch; }
+  .answer .body:empty::after { content: "…"; color: var(--muted); }
+  .cite-row { border-top: 1px solid var(--line); padding-top: 12px; }
+  .cite { font-size: 15px; display: inline-flex; align-items: center; gap: 4px; }
+  .cite .ext { font-size: 12px; }
+  .updated { font-size: 12px; color: var(--muted); margin: 4px 0 0; }
+
+  /* ---------- retrieval details ---------- */
+  details { margin-top: 12px; font-size: 13px; }
+  summary {
+    cursor: pointer; color: var(--muted); list-style: none;
+    display: inline-flex; align-items: center; gap: 6px; min-height: 28px;
+  }
+  summary::-webkit-details-marker { display: none; }
+  summary .chev { transition: transform 0.15s; font-size: 15px; }
+  details[open] summary .chev { transform: rotate(90deg); }
+  .meta-grid {
+    display: grid; grid-template-columns: max-content 1fr; gap: 4px 14px;
+    background: var(--bg-soft); border: 1px solid var(--line); border-radius: var(--radius);
+    padding: 10px 14px; margin-bottom: 10px;
+  }
+  .meta-grid dt { color: var(--muted); }
+  .meta-grid dd { margin: 0; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+  table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--line); }
+  th { color: var(--muted); font-weight: 600; white-space: nowrap; }
+  tr:nth-child(even) { background: var(--bg-soft); }
+  td.mono { font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+    white-space: nowrap; }
+  td.wrap { max-width: 320px; overflow-wrap: anywhere; }
+
+  .status {
+    margin-top: 22px; display: none; padding: 12px 16px; font-size: 14px;
+    border-radius: var(--radius); border: 1px solid var(--line); background: var(--bg);
+    color: var(--muted);
+  }
+  .status.error { color: var(--danger); border-color: var(--danger); }
+
+  footer {
+    text-align: center; font-size: 13px; color: var(--muted);
+    padding: 28px 20px 40px;
+  }
+
+  @media (max-width: 560px) {
+    .ask-row { flex-direction: column; }
+    .ask-row button { width: 100%; }
+    td.wrap { max-width: 180px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand">
+    <div class="logo" aria-hidden="true"><span></span><span></span><span></span></div>
+    <h1>HDFC Fund Facts Assistant</h1>
+  </div>
+  <span class="pill">Facts-only. No investment advice.</span>
+</header>
+
+<main>
+  <section class="hero">
+    <h2>Ask a factual question about HDFC mutual funds</h2>
+    <p>Expense ratio, exit load, minimum SIP, lock-in, riskometer, benchmark —
+       every answer cites one official Groww page.</p>
+  </section>
+
+  <section class="card ask" aria-label="Ask a question">
+    <form class="ask-row" id="ask-form" autocomplete="off">
+      <label class="visually-hidden" for="question" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)">Your question</label>
+      <input id="question" name="question" type="text"
+             placeholder="e.g. What is the expense ratio of HDFC Large Cap?" maxlength="300">
+      <button id="ask-btn" type="submit">Ask</button>
+    </form>
+    <div class="chips" role="group" aria-label="Example questions">
+      <button type="button" data-q="What is the expense ratio of HDFC Flexi Cap?">Flexi Cap expense ratio</button>
+      <button type="button" data-q="What is the lock-in period of the HDFC ELSS Tax Saver Fund?">ELSS lock-in</button>
+      <button type="button" data-q="What is the exit load of HDFC Large Cap?">Large Cap exit load</button>
+    </div>
+  </section>
+
+  <div class="status" id="status" role="status" aria-live="polite"></div>
+
+  <section id="answer-wrap" aria-live="polite">
+    <div class="card answer" id="answer-card">
+      <h3 id="answer-kind">Answer</h3>
+      <p class="body" id="answer-body"></p>
+      <div class="cite-row" id="cite-row" hidden>
+        <a class="cite" id="cite-link" target="_blank" rel="noopener noreferrer">Source: <span id="cite-label"></span><span class="ext">&#8599;</span></a>
+        <p class="updated" id="answer-updated"></p>
+      </div>
+      <details id="retrieval">
+        <summary><span class="chev">&#8250;</span> Show retrieval details</summary>
+        <dl class="meta-grid">
+          <dt>Query id</dt><dd class="mono" id="m-query-id"></dd>
+          <dt>Intent</dt><dd id="m-intent"></dd>
+          <dt>Path</dt><dd id="m-path"></dd>
+          <dt>Scheme filter</dt><dd id="m-filter"></dd>
+          <dt>Model</dt><dd class="mono" id="m-model"></dd>
+          <dt>Validated</dt><dd id="m-validated"></dd>
+        </dl>
+        <table>
+          <caption class="visually-hidden" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)">Retrieved chunks</caption>
+          <thead><tr><th>#</th><th>chunk id</th><th>score</th><th>section</th><th>fact key</th><th>text</th></tr></thead>
+          <tbody id="hits-body"></tbody>
+        </table>
+      </details>
+    </div>
+  </section>
+</main>
+
+<footer>
+  Facts-only. No investment advice. Corpus: 5 official Groww pages.
+  Personal details are never stored.
+</footer>
+
+<script>
+(function () {
+  "use strict";
+  var form = document.getElementById("ask-form");
+  var input = document.getElementById("question");
+  var btn = document.getElementById("ask-btn");
+  var status = document.getElementById("status");
+  var wrap = document.getElementById("answer-wrap");
+  var card = document.getElementById("answer-card");
+  var kind = document.getElementById("answer-kind");
+  var body = document.getElementById("answer-body");
+  var citeRow = document.getElementById("cite-row");
+  var citeLink = document.getElementById("cite-link");
+  var citeLabel = document.getElementById("cite-label");
+  var updated = document.getElementById("answer-updated");
+
+  var KIND_LABEL = {
+    answer: "Answer", template: "Answer (cited template)",
+    refusal: "Out of scope — facts only", redirect: "Out of scope — no performance figures",
+    clarify: "Which scheme?", miss: "Not in the corpus", pii_block: "Blocked — no personal details"
+  };
+  var REFUSAL_PATHS = { refusal: 1, redirect: 1, miss: 1, clarify: 1, pii_block: 1 };
+
+  function setStatus(text, isError) {
+    status.style.display = text ? "block" : "none";
+    status.textContent = text || "";
+    status.className = "status" + (isError ? " error" : "");
+  }
+
+  function render(data) {
+    var path = data.path || "answer";
+    wrap.style.display = "block";
+    card.classList.toggle("refuse", !!REFUSAL_PATHS[path]);
+    kind.textContent = KIND_LABEL[path] || "Answer";
+    body.textContent = data.body || "";
+    citeRow.hidden = !data.citation_url;
+    if (data.citation_url) {
+      citeLink.href = data.citation_url;
+      citeLabel.textContent = data.citation_label || data.citation_url;
+    }
+    updated.textContent = data.fetched_at
+      ? "Last updated from sources: " + data.fetched_at : "";
+    // retrieval details
+    document.getElementById("m-query-id").textContent = data.query_id || "—";
+    document.getElementById("m-intent").textContent = data.intent || "—";
+    document.getElementById("m-path").textContent = path;
+    document.getElementById("m-filter").textContent =
+      data.filter && data.filter.scheme_slug ? data.filter.scheme_slug : "(none)";
+    document.getElementById("m-model").textContent =
+      (data.llm && data.llm.model) || "— (no LLM call)";
+    document.getElementById("m-validated").textContent =
+      data.llm && data.llm.validated ? "yes" : "no";
+    var hits = data.hits || [], tbody = document.getElementById("hits-body");
+    tbody.textContent = "";
+    hits.forEach(function (h, i) {
+      var tr = document.createElement("tr");
+      [i + 1, h.chunk_id, h.score, h.section || "—", h.fact_key || "—", h.text]
+        .forEach(function (v, col) {
+          var td = document.createElement("td");
+          if (col === 1) td.className = "mono";
+          if (col === 5) td.className = "wrap";
+          td.textContent = v === null || v === undefined ? "" : String(v);
+          tr.appendChild(td);
+        });
+      tbody.appendChild(tr);
+    });
+    document.getElementById("retrieval").open = false;
+    card.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  }
+
+  function ask(question) {
+    question = (question || "").trim();
+    if (!question) return;
+    btn.disabled = true;
+    setStatus("Checking the five corpus pages\u2026");
+    fetch("/api/ask", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ question: question })
+    }).then(function (r) {
+      if (!r.ok) throw new Error("API error " + r.status);
+      return r.json();
+    }).then(function (data) {
+      setStatus("");
+      render(data);
+    }).catch(function (err) {
+      setStatus("The assistant is unreachable (" + err.message +
+        "). Facts-only answers need the /api/ask function.", true);
+    }).finally(function () { btn.disabled = false; });
+  }
+
+  form.addEventListener("submit", function (e) {
+    e.preventDefault();
+    ask(input.value);
+  });
+  Array.prototype.forEach.call(document.querySelectorAll(".chips button"), function (chip) {
+    chip.addEventListener("click", function () {
+      input.value = chip.getAttribute("data-q");
+      ask(chip.getAttribute("data-q"));
+    });
+  });
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,29 @@
+{
+  "model_name": "sentence-transformers/all-MiniLM-L6-v2",
+  "dim": 384,
+  "max_seq_len": 256,
+  "count": 468,
+  "encoder": "onnx int8 (dynamic, per-channel MatMul) \u2014 mirrors sentence-transformers/all-MiniLM-L6-v2, mask-weighted mean pooling + L2 normalize. Used for QUERIES only.",
+  "document_vectors": "torch reference (artifacts/03_embeddings) \u2014 the exact rows the Chroma collection stores, registry order; document-side ranking is bit-identical to the app.",
+  "files": {
+    "onnx": "minilm_int8.onnx",
+    "tokenizer": "tokenizer.json",
+    "chunks": "chunks.json",
+    "vectors": "vectors.npy"
+  },
+  "verification": {
+    "against": "artifacts/03_embeddings per-slug .npy (torch)",
+    "measures": "query-side substitution: ONNX embedding vs torch embedding over all chunk texts",
+    "mean_cosine": 0.9942,
+    "min_cosine": 0.9903,
+    "gate": "mean >= 0.985, min >= 0.9"
+  },
+  "per_slug": {
+    "hdfc-mutual-funds": 81,
+    "hdfc-large-cap-fund-direct-growth": 77,
+    "hdfc-equity-fund-direct-growth": 114,
+    "hdfc-elss-tax-saver-fund-direct-plan-growth": 87,
+    "hdfc-mid-cap-fund-direct-growth": 109
+  },
+  "generated_at": "2026-11-11T12:54:34Z"
+}
