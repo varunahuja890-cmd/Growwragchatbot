@@ -115,6 +115,16 @@ Deploy: import the repo at vercel.com (Framework Preset **Other**), or
 the key. Rebuild the index locally with
 `python scripts/export_onnx.py` (see `Docs/implementation.md` §9).
 
+**Live:** <https://groww-hdfc-fund-facts.vercel.app> — `GET /api/ask` is a
+health check (`ok`, 468 chunks, dim 384); `POST /api/ask` with
+`{"question": "..."}` returns the answer plus its trace.
+
+> The project's Framework Preset must be **Other**. A pinned `python`
+> preset makes Vercel build the repo as one serverless app and fail with
+> `No python entrypoint found…`; `.vercelignore` also keeps the local
+> `requirements.txt` out of the upload. Full runbook and the exact fix are
+> in `Docs/implementation.md` §9.4.
+
 ## Tests (phase 8)
 
 ```bash

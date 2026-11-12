@@ -429,6 +429,8 @@ The Streamlit app needs torch, sentence-transformers and a persistent Chroma dir
 | Retrieval | `api/data` index | `MiniLMOnnx` (ONNX int8 all-MiniLM-L6-v2, ~22 MB) embeds **queries only**; `vectors.npy` stores the **torch document vectors — bit-identical to the rows in the Chroma collection** — so document-side ranking matches the app exactly and the single approximation left is the query embedding. `chunks.json` + `vectors.npy` replace Chroma; cosine search, top-6, threshold 0.25, MMR λ 0.5 mirror `query/retrieve.py` verbatim. |
 | LLM | Groq over `httpx` | Same request shape as `llm/factory.py`: temperature 0, 220 max tokens, one retry on timeout/5xx/429, then the cited template fallback. Model id from the `GROQ_MODEL` env var (`openai/gpt-oss-120b`). |
 
+Live deployment: <https://groww-hdfc-fund-facts.vercel.app> (project `groww-hdfc-fund-facts`, team `varun-b50c`). The project's Framework Preset is **Other** (unset, not `python`) so Vercel serves `public/` statically and builds each `api/**/*.py` as its own function; `.vercelignore` keeps the local root `requirements.txt` (torch/streamlit/chromadb) out of the upload so the generic Python preset cannot take over.
+
 Deliberate differences from the app:
 
 - **No trace files.** The Vercel filesystem is read-only; the retrieval trace (query id, intent, path, filter, hits) is returned inside the JSON response instead — every stage stays inspectable (FR-9) in the browser's network tab and the UI's "Show retrieval details" panel.
